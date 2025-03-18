@@ -1,0 +1,12 @@
+select 42;
+select 43;
+drop table t1;
+select 42;
+select 43;
+drop table t1;
+select 42;
+select 43;
+drop table t1;
+select 42;
+select 43;
+drop table t1;
