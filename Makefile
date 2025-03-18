@@ -1,5 +1,5 @@
 NAME = concurrent-fuzzer
-CXXFLAGS = -Wall -Wno-unused-command-line-argument -O3 -flto -std=c++11
+CXXFLAGS = -Wall -Wno-unused-command-line-argument -O3 -flto -std=c++11 -g
 
 OBJ_DIR = obj
 SRC_DIR = src
