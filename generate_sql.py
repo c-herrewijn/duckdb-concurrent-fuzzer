@@ -68,7 +68,7 @@ def statement_insert_into_table(
 ):
     table_name = random.choice(tables)
     num_string_columns = len(columns)
-    return f"INSERT INTO {table_name} VALUES ({', '.join([quoted_random_string(5000) for _ in range(num_string_columns)])});"
+    return f"INSERT INTO {table_name} VALUES ({', '.join([quoted_random_string() for _ in range(num_string_columns)])});"
 
 
 def statement_create_view(databases: list[tuple[str, str]], tables: list[str], views: list[str], columns: list[str]):
@@ -82,6 +82,7 @@ def statement_drop_view(databases: list[tuple[str, str]], tables: list[str], vie
     return f"DROP VIEW {view_name};"
 
 
-def quoted_random_string(string_length):
+def quoted_random_string():
     # single quotes are doubled in sql string literals
+    string_length = 5000
     return f"'{''.join(random.choice(string.printable[:-2]) for _ in range(string_length)).replace("'", "''")}'"
