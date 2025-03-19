@@ -2,21 +2,6 @@ import string
 import random
 
 
-# def generate_sql_statements_old(nr_statements: int, databases: list[tuple[str, str]]):
-#     tables = ['t1']
-#     columns = ['c1', 'c2']
-#     views = ['v1', 'v2']
-
-#     db_name, db_file_name = databases[0]  # TODO use multiple db files
-#     statements = [  # TODO randomize statements; TODO generate a variable nr of statements
-#         statement_attach(db_file_name),
-#         statement_create_table(tables, columns),
-#         statement_detach(db_name),
-#         statement_insert_into_table(tables, len(columns)),
-#     ]
-#     return statements
-
-
 def generate_sql_statements(nr_statements: int, databases: list[tuple[str, str]]):
     tables = ['t1']
     views = ['v1', 'v2']
@@ -30,6 +15,8 @@ def generate_sql_statements(nr_statements: int, databases: list[tuple[str, str]]
         (statement_insert_into_table, 50),
         (statement_create_view, 10),
         (statement_drop_view, 1),
+        (statement_select_from_table, 10),
+        (statement_select_from_view, 10)
     ]
     funcs = [sw[0] for sw in statement_weights]
     weights = [sw[1] for sw in statement_weights]
@@ -80,6 +67,16 @@ def statement_create_view(databases: list[tuple[str, str]], tables: list[str], v
 def statement_drop_view(databases: list[tuple[str, str]], tables: list[str], views: list[str], columns: list[str]):
     view_name = random.choice(views)
     return f"DROP VIEW {view_name};"
+
+
+def statement_select_from_table(databases: list[tuple[str, str]], tables: list[str], views: list[str], columns: list[str]):
+    table_name = random.choice(tables)
+    return f"FROM {table_name};"
+
+
+def statement_select_from_view(databases: list[tuple[str, str]], tables: list[str], views: list[str], columns: list[str]):
+    view_name = random.choice(views)
+    return f"FROM {view_name};"
 
 
 def quoted_random_string():

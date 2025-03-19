@@ -42,7 +42,8 @@ def main():
     test_databases = [('db1', 'db1.duckdb'), ('db2', 'db2.duckdb')]
     sql_file_dir = Path('./sql')
     create_db_files(test_databases)
-    sql_files = create_sql_files(5, 500, sql_file_dir, test_databases)
+    sql_files = create_sql_files(5, 1000, sql_file_dir, test_databases)
+    # sql_files = list(sql_file_dir.glob('*.sql'))
     concurrent_run(sql_files)
     delete_db_files(test_databases)
 
@@ -64,6 +65,7 @@ def create_sql_files(nr_sql_files: int, statements_per_file: int, sql_file_dir: 
     sql_files: list[Path] = []
     for sql_file_num in range(1, nr_sql_files + 1):
         sql_file = sql_file_dir / f"file{sql_file_num}.sql"
+        print(f"generating sql statements for file {sql_file} ...")
         sql_file.touch()
         sql_file.write_text("\n".join(generate_sql.generate_sql_statements(statements_per_file, test_databases)))
         sql_files.append(sql_file)
@@ -88,7 +90,7 @@ def execute_statements(sql_file: Path):
     statements = get_statements_from_file(sql_file)
     for num, statement in enumerate(statements):
         try:
-            if statement.startswith('SELECT'):
+            if statement.startswith('SELECT') or statement.startswith('FROM'):
                 con.sql(statement).fetchall()
             else:
                 con.sql(statement)
