@@ -13,28 +13,6 @@ DUCKDB_EXCEPTIONS = (
     duckdb.IOException,  # e.g. Could not set lock on file "db1.duckdb"
     duckdb.BinderException,  # e.g. Failed to detach database with name "db1"
     duckdb.CatalogException,  # e.g. Table with name t1 does not exist!
-    ## -- unexpected exceptions
-    # duckdb.ConnectionException,
-    # duckdb.ConstraintException,
-    # duckdb.ConversionException,
-    # duckdb.HTTPException,
-    # duckdb.InterruptException,
-    # duckdb.InvalidInputException,
-    # duckdb.InvalidTypeException,
-    # duckdb.NotImplementedException,
-    # duckdb.OutOfMemoryException,
-    # duckdb.OutOfRangeException,
-    # duckdb.ParserException,
-    # duckdb.PermissionException,
-    # duckdb.SequenceException,
-    # duckdb.SerializationException,
-    # duckdb.SyntaxException,
-    # duckdb.TransactionException,
-    # duckdb.TypeMismatchException,
-    # duckdb.IntegrityError,
-    # duckdb.NotSupportedError,
-    # duckdb.OperationalError,
-    # duckdb.ProgrammingError,
 )
 
 
