@@ -17,8 +17,13 @@ DUCKDB_EXCEPTIONS = (
 
 
 def main():
-    test_databases = [('db1', 'db1.duckdb'), ('db2', 'db2.duckdb')]
+    test_databases = [
+        ('memory', ''),
+        ('db1', 'db1.duckdb'),
+        ('db2', 'db2.duckdb')
+    ]
     sql_file_dir = Path('./sql')
+
     create_db_files(test_databases)
     sql_files = create_sql_files(5, 1000, sql_file_dir, test_databases)
     # sql_files = list(sql_file_dir.glob('*.sql'))
@@ -29,13 +34,15 @@ def main():
 def create_db_files(test_databases):
     con = duckdb.connect()
     for db_name, db_file_name in test_databases:
-        con.sql(f"ATTACH '{db_file_name}' AS {db_name};")
+        if db_name != 'memory':
+            con.sql(f"ATTACH '{db_file_name}' AS {db_name};")
     con.close()
 
 
 def delete_db_files(test_databases):
-    for _, db_file_name in test_databases:
-        Path(db_file_name).unlink()
+    for db_name, db_file_name in test_databases:
+        if db_name != 'memory':
+            Path(db_file_name).unlink()
 
 
 def create_sql_files(nr_sql_files: int, statements_per_file: int, sql_file_dir: Path, test_databases: tuple[str, str]):
