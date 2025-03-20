@@ -1,0 +1,10 @@
+INSERT INTO t1 VALUES ('BLG(5', 's `Z');
+INSERT INTO t1 VALUES ('-W9<9', ']bT.m');
+INSERT INTO t1 VALUES ('J~={F', '9\~:&');
+FROM t1;
+CREATE TABLE t1 (c1 VARCHAR, c2 VARCHAR);
+FROM v1;
+INSERT INTO t1 VALUES ('E+H@}', '_R?PD');
+INSERT INTO t1 VALUES ('Yzd	m', '9?,K	');
+INSERT INTO t1 VALUES ('UA*$j', '%E\A3');
+INSERT INTO t1 VALUES ('#9l=x', 'v@hV	');
