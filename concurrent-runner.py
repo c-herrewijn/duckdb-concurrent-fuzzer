@@ -2,12 +2,18 @@
 
 import duckdb
 from duckdb import DuckDBPyConnection
-from pathlib import Path
+from enum import Enum, auto
 import multiprocessing
 from multiprocessing import Process
+from pathlib import Path
 from threading import Thread
 
 import generate_sql
+
+
+class ConcurrentMode(Enum):
+    MULTI_THREADING = auto()
+    MULTI_PROCESSING = auto()
 
 
 DUCKDB_EXCEPTIONS = (
@@ -15,113 +21,108 @@ DUCKDB_EXCEPTIONS = (
     duckdb.IOException,  # e.g. Could not set lock on file "db1.duckdb"
     duckdb.BinderException,  # e.g. Failed to detach database with name "db1"
     duckdb.CatalogException,  # e.g. Table with name t1 does not exist!
-    duckdb.InvalidInputException, # e.g. Attempting to execute an unsuccessful or closed pending query result
 )
-
-MODE = 'threads'
 
 
 def main():
+    # -- settings --
     test_databases = [
         ('memory', ''),
         ('db1', 'db1.duckdb'),
         ('db2', 'db2.duckdb')
     ]
-    sql_file_dir = Path('./multithreaded_hang')
+    sql_file_dir = Path('./sql')
+    concurrent_mode = ConcurrentMode.MULTI_PROCESSING
+    num_files = 5
+    statements_per_file = 1000
+    generate_statements = True
+    # -- end of settings --
 
+    sql_files = (
+        create_sql_files(num_files, statements_per_file, sql_file_dir, test_databases)
+        if generate_statements
+        else list(sql_file_dir.glob('*.sql'))
+    )
     create_db_files(test_databases)
-    # sql_files = create_sql_files(2, 10, sql_file_dir, test_databases)
-    sql_files = list(sql_file_dir.glob('*.sql'))
-    print(sql_files)
-    concurrent_run(sql_files)
+    match concurrent_mode:
+        case ConcurrentMode.MULTI_PROCESSING:
+            run_forked_processes(sql_files)
+        case ConcurrentMode.MULTI_THREADING:
+            run_threads(sql_files)
+        case _:
+            raise ('Invalid ConcurrentMode')
     delete_db_files(test_databases)
 
 
 def create_db_files(test_databases):
+    delete_db_files(test_databases)
     con = duckdb.connect()
     for db_name, db_file_name in test_databases:
         if db_name != 'memory':
-            con.sql(f"ATTACH '{db_file_name}' AS {db_name};")
+            con.execute(f"ATTACH '{db_file_name}' AS {db_name};")
     con.close()
 
 
 def delete_db_files(test_databases):
     for db_name, db_file_name in test_databases:
-        if db_name != 'memory':
-            Path(db_file_name).unlink()
+        path = Path(db_file_name)
+        if db_name != 'memory' and path.is_file():
+            path.unlink()
 
 
-def create_sql_files(nr_sql_files: int, statements_per_file: int, sql_file_dir: Path, test_databases: tuple[str, str]):
+def create_sql_files(nr_sql_files: int, nr_statements: int, sql_file_dir: Path, test_databases: tuple[str, str]):
     sql_file_dir.mkdir(exist_ok=True)
     sql_files: list[Path] = []
     for sql_file_num in range(1, nr_sql_files + 1):
         sql_file = sql_file_dir / f"file{sql_file_num}.sql"
         print(f"generating sql statements for file {sql_file} ...")
         sql_file.touch()
-        sql_file.write_text("\n".join(generate_sql.generate_sql_statements(statements_per_file, test_databases)))
+        sql_file.write_text("\n".join(generate_sql.generate_sql_statements(nr_statements, test_databases)))
         sql_files.append(sql_file)
     return sql_files
 
 
-def concurrent_run(sql_files: list[Path]):
-    if (MODE == 'threads'):
-        con = duckdb.connect(":default:")
-        all_processes: list[Thread] = []
-    else:
-        multiprocessing.set_start_method('fork', force=True)
-        all_processes: list[Process] = []
-
-    statements_all_files: list[list[str]] = [get_statements_from_file(sql_file) for sql_file in sql_files]
-    # print(len(statements_all_files))
-    # print(statements_all_files[0][0])
-    print('---')
-    # exit(42)
-
-    # define concurrent jobs
+def run_threads(sql_files: list[Path]):
+    con = duckdb.connect()
+    all_threads: list[Thread] = []
+    # define threads
     for sql_file in sql_files:
         statements: list[str] = get_statements_from_file(sql_file)
         thread = Thread(target=execute_statements, args=(statements, con, sql_file.name))
-        all_processes.append(thread)
-
-    # run jobs
-    for job in all_processes:
-        job.start()
-
-    # wait for all jos to be finished
-    for job in all_processes:
-        print('waiting...', flush=True)
-        job.join()
-        print(f'joined process: {job}', flush=True)
+        all_threads.append(thread)
+    # run threads and wait for them to be finished
+    for thread in all_threads:
+        thread.start()
+    for thread in all_threads:
+        thread.join()
+    con.close()
 
 
-    # run concurrently run per file
-    # for sql_file_idx, sql_file in enumerate(sql_files):
-    #     print(f'starting thread for {sql_file}', flush=True)
-    #     process = Thread(target=execute_statements, args=(statements_all_files[sql_file_idx], con, sql_file.name))
-    #     print(f'process: {process}', flush=True)
-    #     process.start()
-    #     all_processes.append(process)
-    #     print("len(all_processes): ", len(all_processes), flush=True)
-
-
-
-    if (MODE == 'threads'):
-        con.close()
-    print('done')
+def run_forked_processes(sql_files: list[Path]):
+    multiprocessing.set_start_method('fork', force=True)
+    all_processes: list[Process] = []
+    for sql_file in sql_files:
+        statements: list[str] = get_statements_from_file(sql_file)
+        process = Process(target=execute_statements, args=(statements, None, sql_file.name))
+        all_processes.append(process)
+    # run processes and wait for them to be finished
+    for process in all_processes:
+        process.start()
+    for process in all_processes:
+        process.join()
 
 
 def execute_statements(statements: list[str], con: DuckDBPyConnection, sql_file_name: str):
-    print(f'running statements from {sql_file_name}...', flush=True)
+    if con:
+        con = con.cursor()
+    else:
+        con = duckdb.connect()
     for num, statement in enumerate(statements):
-        print(f"{sql_file_name} - {num} - {statement}", flush=True)
         try:
-            if statement.startswith('SELECT') or statement.startswith('FROM'):
-                con.sql(statement).fetchall()
-            else:
-                con.sql(statement)
+            con.execute(statement).fetchall()
         except DUCKDB_EXCEPTIONS as e:
             print(f"{sql_file_name}: statement idx {num}: {statement} raised exception: {e}", flush=True)
-    print(f'DONE running statements from {sql_file_name}...', flush=True)
+    con.close()
 
 
 def get_statements_from_file(sql_file: Path) -> list[str]:
