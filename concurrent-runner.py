@@ -26,11 +26,7 @@ DUCKDB_EXCEPTIONS = (
 
 def main():
     # -- settings --
-    test_databases = [
-        ('memory', ''),
-        ('db1', 'db1.duckdb'),
-        ('db2', 'db2.duckdb')
-    ]
+    test_databases = [('memory', ''), ('db1', 'db1.duckdb'), ('db2', 'db2.duckdb')]
     sql_file_dir = Path('./sql')
     concurrent_mode = ConcurrentMode.MULTI_PROCESSING
     num_files = 5
@@ -95,12 +91,14 @@ def run_threads(sql_files: list[Path]):
         thread.start()
     for thread in all_threads:
         thread.join()
+        print(f"thread {thread.name} finished", flush=True)
     con.close()
 
 
 def run_forked_processes(sql_files: list[Path]):
     multiprocessing.set_start_method('fork', force=True)
     all_processes: list[Process] = []
+    # define processes
     for sql_file in sql_files:
         statements: list[str] = get_statements_from_file(sql_file)
         process = Process(target=execute_statements, args=(statements, None, sql_file.name))
@@ -110,6 +108,7 @@ def run_forked_processes(sql_files: list[Path]):
         process.start()
     for process in all_processes:
         process.join()
+        print(f"process {process.name} finished with exit code {process.exitcode}", flush=True)
 
 
 def execute_statements(statements: list[str], con: DuckDBPyConnection, sql_file_name: str):
@@ -121,7 +120,10 @@ def execute_statements(statements: list[str], con: DuckDBPyConnection, sql_file_
         try:
             con.execute(statement).fetchall()
         except DUCKDB_EXCEPTIONS as e:
-            print(f"{sql_file_name}: statement idx {num}: {statement} raised exception: {e}", flush=True)
+            print(
+                f"{sql_file_name}: statement idx {num}: {statement if len(statement) < 60 else f"{statement[:30]} ... {statement[-5:]}"} raised exception: {e}",
+                flush=True,
+            )
     con.close()
 
 
